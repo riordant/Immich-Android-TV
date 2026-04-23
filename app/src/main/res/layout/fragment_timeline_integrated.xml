@@ -1,6 +1,5 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,8 +7,8 @@
     android:focusable="false"
     android:background="@android:color/black"
     tools:context="nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment"
-    android:paddingStart="150dp"
-    android:paddingTop="32dp">
+    android:paddingStart="0dp"
+    android:paddingTop="72dp">
 
 
     <LinearLayout
@@ -19,26 +18,25 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/sidebar_navigation_recycler_view"
-            android:layout_width="match_parent"
+            android:layout_width="188dp"
             android:layout_height="match_parent"
-            android:paddingTop="120dp"
+            android:paddingTop="16dp"
             android:paddingBottom="32dp"
-            android:focusable="false"
-            android:clipToPadding="true"
-            android:background="@android:color/transparent"
+            android:focusable="true"
+            android:clipToPadding="false"
+            android:clipToOutline="true"
+            android:background="@drawable/bg_timeline_sidebar"
             tools:itemCount="10"
             tools:listitem="@layout/item_timeline_month"/>
 
-        <!-- Container hidden permanently as thumbnail mode is removed -->
         <LinearLayout
             android:id="@+id/grid_container"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0"
+            android:layout_weight="1"
             android:orientation="vertical"
-            android:visibility="gone"
-            android:paddingStart="32dp"
-            android:paddingEnd="32dp">
+            android:paddingStart="8dp"
+            android:paddingEnd="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
