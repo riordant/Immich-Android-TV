@@ -20,7 +20,6 @@ class FavoritesBrowseFragment : GenericAssetFragment() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "Favorites"
         
         // Asegurar grid 3x3 (o el número configurado)
         val cols = try {

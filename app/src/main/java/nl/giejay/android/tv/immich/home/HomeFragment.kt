@@ -127,7 +127,7 @@ class HomeFragment : BrowseSupportFragment() {
             Header("People") { PeopleFragment() },
             Header("Recent") { RecentAssetsFragment() },
             Header("Favorites") { FavoritesBrowseFragment() },
-            Header("On this day") { OnThisDayBrowseFragment() }, // CAMBIADO AQUÍ
+            Header("On This Day") { OnThisDayBrowseFragment() },
             Header("Seasonal") { SimilarTimeAssetsFragment() },
             Header("Timeline") { nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment() },
             Header("Folders") { FolderFragment() },

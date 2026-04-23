@@ -534,8 +534,7 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
             PreferenceManager.get(DEBUG_MODE),
             gradiantOverlay = false,
             PreferenceManager.get(SCREENSAVER_ANIMATE_ASSET_SLIDE),
-            PreferenceManager.getAllMetaData(MetaDataScreen.VIEWER),
-            loadPreviousCallback // Passed explicitly!
+            PreferenceManager.getAllMetaData(MetaDataScreen.VIEWER)
         )
 
         val bundle = Bundle()

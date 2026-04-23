@@ -134,7 +134,8 @@ class FolderFragment : VerticalCardGridFragment<Item>() {
                 a.item.path,
                 if (a.item.path == "..") "folder_up" else "folder",
                 null,
-                false
+                false,
+                forceShowInfo = true
             )
         } else {
             (a.item as Asset).toCard()

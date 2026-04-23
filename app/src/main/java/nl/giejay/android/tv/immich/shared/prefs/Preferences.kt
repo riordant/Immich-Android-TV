@@ -147,8 +147,8 @@ data object SLIDER_METADATA_CUSTOMIZER : ActionPref("Customize metadata", "Confi
 })
 
 data object SLIDER_ONLY_USE_THUMBNAILS : BooleanPref(true, "Use high resolution thumbnails", "Use high resolution thumbnails instead of native/full images. Will dramatically speed up loading.")
-data object SHOW_FILE_NAMES_GRID : BooleanPref(true, "Show file names in grid", "Show the file name below photos in the grid view")
-data object GRID_COLUMN_COUNT : IntListPref(4, "Columnas", "Número de columnas en la cuadrícula", R.array.grid_columns_titles, R.array.grid_columns_values)
+data object SHOW_FILE_NAMES_GRID : BooleanPref(false, "Show file names in grid", "Show the file name below photos in the grid view")
+data object GRID_COLUMN_COUNT : IntListPref(4, "Columns", "Number of columns in the grid", R.array.grid_columns_titles, R.array.grid_columns_values)
 data object SLIDER_MERGE_PORTRAIT_PHOTOS : BooleanPref(true, "Merge portrait photos", "Show two portrait photos next to each other")
 data object SLIDER_MAX_CUT_OFF_WIDTH : IntSeekbarPref(20,
     "Safe Center Crop max cutoff height %",
@@ -277,7 +277,7 @@ data object ALL_ASSETS_SORTING : EnumByTitlePref<PhotosOrder>(PhotosOrder.NEWEST
 
 // other
 data object DEBUG_MODE : BooleanPref(true, "Enable debug mode", "Enable this if you are experiencing issues.")
-data object LOAD_BACKGROUND_IMAGE : BooleanPref(true, "Load selected item as background", "Load the currently selected image/album as the background")
+data object LOAD_BACKGROUND_IMAGE : BooleanPref(false, "Load selected item as background", "Load the currently selected image/album as the background")
 data object HIDDEN_HOME_ITEMS : StringSetPref(emptySet(), "", "")
 data object USER_ID : NotUserEditableStringPref("User ID", "Your user id, needed for debugging")
 

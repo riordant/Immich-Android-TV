@@ -58,6 +58,7 @@ android {
     buildFeatures {
         // View binding allows efficient, type-safe view access
         // See more at https://developer.android.com/topic/libraries/view-binding
+        buildConfig = true
         viewBinding = true
     }
 

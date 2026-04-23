@@ -8,5 +8,6 @@ data class Card(
     override val backgroundUrl: String?,
     val isVideo: Boolean = false,
     var isFavorite: Boolean = false, // <--- ESTE ES EL CAMPO QUE FALTABA
-    override var selected: Boolean = false
+    override var selected: Boolean = false,
+    override val forceShowInfo: Boolean = false
 ) : ICard

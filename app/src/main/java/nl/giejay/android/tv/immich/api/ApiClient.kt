@@ -20,6 +20,9 @@ import nl.giejay.android.tv.immich.shared.prefs.RECENT_ASSETS_MONTHS_BACK
 import nl.giejay.android.tv.immich.shared.prefs.SIMILAR_ASSETS_PERIOD_DAYS
 import nl.giejay.android.tv.immich.shared.prefs.SIMILAR_ASSETS_YEARS_BACK
 import nl.giejay.android.tv.immich.shared.util.Utils.pmap
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -145,30 +148,38 @@ class ApiClient(private val config: ApiClientConfig) {
         pageCount: Int,
         contentType: ContentType,
         yearsBack: Int? = null
-    ): Either<String, List<Asset>> {
+    ): Either<String, List<Asset>> = coroutineScope {
         val now = LocalDateTime.now()
         val today = now.dayOfMonth
         val currentMonth = now.monthValue
+        val maxYearsBack = yearsBack ?: PreferenceManager.get(SIMILAR_ASSETS_YEARS_BACK)
     
         Timber.d("OnThisDay: Buscando fotos del día $today del mes $currentMonth")
-    
-        val map: List<Either<String, List<Asset>>> = (0 until (yearsBack ?: PreferenceManager.get(SIMILAR_ASSETS_YEARS_BACK))).toList().map { yearOffset ->
-            val fromDate = now.withHour(0).withMinute(0).withSecond(0).minusYears(yearOffset.toLong())
-            val endDate = now.withHour(23).withMinute(59).withSecond(59).minusYears(yearOffset.toLong())
-        
-            Timber.d("OnThisDay: Año ${now.year - yearOffset} - Buscando desde $fromDate hasta $endDate")
-        
-            listAssets(page,
-                pageCount,
-                true,
-                "desc",
-                fromDate = fromDate,
-                endDate = endDate,
-                contentType = contentType)
+
+        val map = mutableListOf<Either<String, List<Asset>>>()
+        for (chunk in (0 until maxYearsBack).toList().chunked(6)) {
+            map += chunk.map { yearOffset ->
+                async {
+                    val fromDate = now.withHour(0).withMinute(0).withSecond(0).minusYears(yearOffset.toLong())
+                    val endDate = now.withHour(23).withMinute(59).withSecond(59).minusYears(yearOffset.toLong())
+
+                    Timber.d("OnThisDay: Año ${now.year - yearOffset} - Buscando desde $fromDate hasta $endDate")
+
+                    listAssets(
+                        page,
+                        pageCount,
+                        true,
+                        "desc",
+                        fromDate = fromDate,
+                        endDate = endDate,
+                        contentType = contentType
+                    )
+                }
+            }.awaitAll()
         }
     
         if (map.all { it.isLeft() }) {
-            return map.first()
+            return@coroutineScope map.first()
         }
     
         val allAssets = map.flatMap { it.getOrElse { emptyList() } }
@@ -192,7 +203,7 @@ class ApiClient(private val config: ApiClientConfig) {
     
         Timber.d("OnThisDay: Total assets después de filtrar: ${filteredAssets.size}")
     
-        return Either.Right(filteredAssets)
+        Either.Right(filteredAssets)
     }
 
     suspend fun listAssets(page: Int,

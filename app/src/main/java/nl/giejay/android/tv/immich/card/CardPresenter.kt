@@ -66,39 +66,45 @@ open class CardPresenter(context: Context, style: Int = R.style.DefaultCardTheme
 
     override fun onBindViewHolder(card: ICard, cardView: ImageCardView) {
         cardView.tag = card
-        
-        // 1. Configurar CLIC NORMAL con manejo de errores
-        cardView.setOnClickListener {
-            Timber.d("CLICK EN CardPresenter para card: ${card.id}")
-            try {
-                onClick?.invoke(card)
-                Timber.d("onClick ejecutado correctamente")
-            } catch (e: Exception) {
-                Timber.e(e, "Error al ejecutar onClick para card: ${card.id}")
-                // Intenta mostrar un error al usuario
+
+        if (onClick != null) {
+            cardView.setOnClickListener {
+                Timber.d("CLICK EN CardPresenter para card: ${card.id}")
                 try {
-                    if (context is Activity) {
-                        android.widget.Toast.makeText(
-                            context, 
-                            "Error al abrir la foto", 
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
+                    onClick?.invoke(card)
+                    Timber.d("onClick ejecutado correctamente")
+                } catch (e: Exception) {
+                    Timber.e(e, "Error al ejecutar onClick para card: ${card.id}")
+                    try {
+                        if (context is Activity) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Error al abrir la foto",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } catch (toastEx: Exception) {
+                        Timber.e(toastEx, "Error al mostrar toast")
                     }
-                } catch (toastEx: Exception) {
-                    Timber.e(toastEx, "Error al mostrar toast")
                 }
             }
+        } else {
+            // Let Leanback's default row/grid click handling run when no custom click callback is supplied.
+            cardView.setOnClickListener(null)
         }
 
-        // 2. Configurar CLIC LARGO con manejo de errores
-        cardView.setOnLongClickListener {
-            Timber.d("LONG CLICK EN CardPresenter para card: ${card.id}")
-            try {
-                onLongClick?.invoke(card)
-            } catch (e: Exception) {
-                Timber.e(e, "Error al ejecutar onLongClick para card: ${card.id}")
+        if (onLongClick != null) {
+            cardView.setOnLongClickListener {
+                Timber.d("LONG CLICK EN CardPresenter para card: ${card.id}")
+                try {
+                    onLongClick?.invoke(card)
+                } catch (e: Exception) {
+                    Timber.e(e, "Error al ejecutar onLongClick para card: ${card.id}")
+                }
+                true
             }
-            true 
+        } else {
+            cardView.setOnLongClickListener(null)
         }
         
         // Limpiar listener de teclas conflictivo
@@ -115,7 +121,7 @@ open class CardPresenter(context: Context, style: Int = R.style.DefaultCardTheme
             PreferenceManager.get(nl.giejay.android.tv.immich.shared.prefs.SHOW_FILE_NAMES_GRID)
         } catch (e: Exception) { true }
 
-        if (showNames) {
+        if (showNames || card.forceShowInfo) {
             cardView.cardType = BaseCardView.CARD_TYPE_INFO_UNDER
             cardView.titleText = card.title
             cardView.contentText = card.description

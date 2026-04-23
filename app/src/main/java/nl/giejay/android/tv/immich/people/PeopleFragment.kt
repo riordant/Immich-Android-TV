@@ -51,7 +51,8 @@ class PeopleFragment : VerticalCardGridFragment<Person>() {
             a.id.toString(),
             ApiUtil.getPersonThumbnail(a.id),
             ApiUtil.getPersonThumbnail(a.id),
-            false
+            false,
+            forceShowInfo = true
         )
     }
 }
