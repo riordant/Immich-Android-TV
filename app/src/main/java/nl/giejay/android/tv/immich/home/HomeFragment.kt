@@ -27,10 +27,8 @@ import nl.giejay.android.tv.immich.onthisday.OnThisDayBrowseFragment
 import nl.giejay.android.tv.immich.favorite.FavoritesBrowseFragment
 import nl.giejay.android.tv.immich.people.PeopleFragment
 import nl.giejay.android.tv.immich.settings.SettingsFragment
-import nl.giejay.android.tv.immich.shared.fragment.GridFragment
 import nl.giejay.android.tv.immich.shared.prefs.HIDDEN_HOME_ITEMS
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
-import nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment
 import timber.log.Timber
 
 class HomeFragment : BrowseSupportFragment() {
@@ -57,23 +55,8 @@ class HomeFragment : BrowseSupportFragment() {
         }
 
         headersSupportFragment.setOnHeaderClickedListener { _, row ->
-            if (row.headerItem.name == "Edit") {
-                immichRowPresenter.editMode = !immichRowPresenter.editMode
-                if(immichRowPresenter.editMode){
-                    mRowsAdapter.clear()
-                    mRowsAdapter.addAll(0, rows.filter { it.headerItem.name != "Settings" })
-                } else {
-                    mRowsAdapter.clear();
-                    mRowsAdapter.addAll(0, rows.filter { !PreferenceManager.itemInStringSet(it.headerItem.name, HIDDEN_HOME_ITEMS) })
-                }
-                adapter.notifyItemRangeChanged(0, mRowsAdapter.size());
-            } else if(immichRowPresenter.editMode){
-                PreferenceManager.toggleStringSetItem(row.headerItem.name, HIDDEN_HOME_ITEMS)
-                adapter.notifyItemRangeChanged(0, mRowsAdapter.size())
-            } else{
-                if (!this.isInHeadersTransition) {
-                    this.startHeadersTransition(false)
-                }
+            if (!this.isInHeadersTransition) {
+                this.startHeadersTransition(false)
             }
         }
     }
@@ -117,21 +100,20 @@ class HomeFragment : BrowseSupportFragment() {
 
     companion object {
         private val HEADERS: List<Header> = listOf(
+            Header("Timeline") { nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment() },
+            Header("People") { PeopleFragment() },
+            Header("On This Day") { OnThisDayBrowseFragment() },
+            Header("Random") { RandomAssetsFragment() },
+            Header("Recent") { RecentAssetsFragment() },
+            Header("Favorites") { FavoritesBrowseFragment() },
             Header("Albums") {
                 AlbumFragment().apply {
                     arguments = bundleOf("selectionMode" to false)
                 }
             },
-            Header("Photos") { AllAssetFragment() },
-            Header("Random") { RandomAssetsFragment() },
-            Header("People") { PeopleFragment() },
-            Header("Recent") { RecentAssetsFragment() },
-            Header("Favorites") { FavoritesBrowseFragment() },
-            Header("On This Day") { OnThisDayBrowseFragment() },
             Header("Seasonal") { SimilarTimeAssetsFragment() },
-            Header("Timeline") { nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment() },
+            Header("All") { AllAssetFragment() },
             Header("Folders") { FolderFragment() },
-            Header("Edit") { GridFragment(hideProgressBar = true) },
             Header("Settings") { SettingsFragment() },
         )
     }
