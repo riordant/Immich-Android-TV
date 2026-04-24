@@ -278,6 +278,7 @@ data object ALL_ASSETS_SORTING : EnumByTitlePref<PhotosOrder>(PhotosOrder.NEWEST
 // other
 data object DEBUG_MODE : BooleanPref(true, "Enable debug mode", "Enable this if you are experiencing issues.")
 data object LOAD_BACKGROUND_IMAGE : BooleanPref(false, "Load selected item as background", "Load the currently selected image/album as the background")
+data object SHOW_FOLDERS_IN_MAIN_COLUMN : BooleanPref(false, "Show Folders", "Show Folders in main column")
 data object HIDDEN_HOME_ITEMS : StringSetPref(emptySet(), "", "")
 data object USER_ID : NotUserEditableStringPref("User ID", "Your user id, needed for debugging")
 
@@ -349,6 +350,7 @@ data object ViewPrefScreen : PrefScreen("View Settings", "view",
             EXCLUDE_ASSETS_IN_ALBUM,
             SHOW_FILE_NAMES_GRID,
             LOAD_BACKGROUND_IMAGE,
+            SHOW_FOLDERS_IN_MAIN_COLUMN,
             SHOW_ONLY_VIDEOS
         ))
     )

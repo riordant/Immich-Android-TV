@@ -1,6 +1,7 @@
 package nl.giejay.android.tv.immich.people
 
 import androidx.navigation.fragment.findNavController
+import androidx.leanback.widget.Presenter
 import arrow.core.Either
 import nl.giejay.android.tv.immich.api.ApiClient
 import nl.giejay.android.tv.immich.api.model.Person
@@ -38,6 +39,10 @@ class PeopleFragment : VerticalCardGridFragment<Person>() {
                 card.title
             )
         )
+    }
+
+    override fun createGridItemPresenter(): Presenter {
+        return PeopleCardPresenter()
     }
 
     override fun getBackgroundPicture(it: Person): String? {

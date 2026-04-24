@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -59,6 +60,14 @@ class SettingsDialogFragment : DialogFragment() {
 
         // creating the fullscreen dialog
         val dialog = Dialog(requireContext())
+        dialog.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                dismiss()
+                true
+            } else {
+                false
+            }
+        }
         val dialogWindow: Window? = dialog.window
         dialog.setContentView(root)
         dialogWindow!!.setBackgroundDrawable(ColorDrawable(Color.BLACK))

@@ -61,6 +61,8 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
 
     companion object {
         private const val MONTH_SELECTION_DEBOUNCE_MS = 180L
+        private const val INITIAL_LOAD_RETRY_DELAY_MS = 600L
+        private const val INITIAL_LOAD_MAX_RETRIES = 4
         private const val LOAD_MORE_THRESHOLD = 12
         private const val SIDEBAR_FOCUS_OFFSET = 96
         private const val DEFAULT_GRID_COLUMN_COUNT = 4
@@ -86,6 +88,8 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
     private var pendingSidebarReentryBucketId: String? = null
     private var initialSidebarFocusApplied = false
     private var monthSelectionJob: Job? = null
+    private var initialLoadRetryJob: Job? = null
+    private var initialLoadRetryCount = 0
     private var bucketsLoading = false
     private var assetsLoading = false
     private var gridColumnCount = DEFAULT_GRID_COLUMN_COUNT
@@ -110,14 +114,15 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
 
         setupApiClient()
         setupGrids()
-        viewModel.loadBuckets(apiClient)
         observeViewModel()
+        viewModel.loadBuckets(apiClient)
     }
 
     override fun onResume() {
         super.onResume()
 
         refreshGridColumnsIfNeeded()
+        retryInitialBucketLoadIfNeeded()
 
         if (pendingGridRestoreAssetId != null && currentAssetList.isNotEmpty()) {
             gridAssets.post {
@@ -133,6 +138,7 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
 
     override fun onDestroyView() {
         monthSelectionJob?.cancel()
+        initialLoadRetryJob?.cancel()
         currentAssetList = emptyList()
         renderedBucketId = null
         pendingGridFocusBucketId = null
@@ -148,6 +154,28 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
                 PreferenceManager.get(DEBUG_MODE)
             )
         )
+    }
+
+    private fun retryInitialBucketLoadIfNeeded() {
+        if (viewModel.buckets.value.isNotEmpty() || initialLoadRetryJob?.isActive == true) {
+            return
+        }
+
+        initialLoadRetryJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (
+                viewModel.buckets.value.isEmpty() &&
+                initialLoadRetryCount < INITIAL_LOAD_MAX_RETRIES
+            ) {
+                delay(INITIAL_LOAD_RETRY_DELAY_MS)
+                if (viewModel.buckets.value.isNotEmpty() || bucketsLoading) {
+                    continue
+                }
+
+                initialLoadRetryCount += 1
+                setupApiClient()
+                viewModel.loadBuckets(apiClient, forceReload = true)
+            }
+        }
     }
 
     private fun observeViewModel() {

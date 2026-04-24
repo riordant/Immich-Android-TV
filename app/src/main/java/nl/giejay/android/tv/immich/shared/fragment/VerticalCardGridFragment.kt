@@ -11,6 +11,7 @@ import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.FocusHighlight
 import androidx.leanback.widget.OnItemViewClickedListener
 import androidx.leanback.widget.VerticalGridPresenter
+import androidx.leanback.widget.Presenter
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -29,7 +30,7 @@ import nl.giejay.android.tv.immich.ImmichApplication
 import nl.giejay.android.tv.immich.api.ApiClient
 import nl.giejay.android.tv.immich.api.ApiClientConfig
 import nl.giejay.android.tv.immich.card.Card
-import nl.giejay.android.tv.immich.card.CardPresenterSelector
+import nl.giejay.android.tv.immich.card.CardPresenter
 import nl.giejay.android.tv.immich.home.HomeFragmentDirections
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
 import nl.giejay.android.tv.immich.shared.prefs.DEBUG_MODE
@@ -249,20 +250,19 @@ abstract class VerticalCardGridFragment<ITEM> : GridFragment() {
         
         gridPresenter = presenter
         
-        // INSTANCIAMOS EL PRESENTER
-        val cardPresenter = nl.giejay.android.tv.immich.card.CardPresenter(requireContext())
-        
-        // CONFIGURAMOS SOLO EL LONG CLICK (El short click lo maneja onItemViewClickedListener)
+        adapter = ArrayObjectAdapter(createGridItemPresenter())
+    }
+
+    protected open fun createGridItemPresenter(): Presenter {
+        val cardPresenter = CardPresenter(requireContext())
+
         cardPresenter.onLongClick = { card ->
             if (card is Card) {
                 toggleFavorite(card)
             }
         }
 
-        // IMPORTANTE: NO asignar onShortClick aquí, porque CardPresenter no lo tiene
-        // y Leanback ya maneja el clic normal.
-
-        adapter = ArrayObjectAdapter(cardPresenter)
+        return cardPresenter
     }
 
     private fun setupBackgroundManager() {

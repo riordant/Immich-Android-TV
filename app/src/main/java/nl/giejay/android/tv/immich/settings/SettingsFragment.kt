@@ -1,6 +1,7 @@
 package nl.giejay.android.tv.immich.settings
 
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,7 @@ import androidx.leanback.widget.VerticalGridView
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import nl.giejay.android.tv.immich.R
+import nl.giejay.android.tv.immich.home.HomeFragment
 import nl.giejay.android.tv.immich.home.HomeFragmentDirections
 import nl.giejay.android.tv.immich.shared.prefs.DebugPrefScreen
 import nl.giejay.android.tv.immich.shared.prefs.ScreensaverPrefScreen
@@ -65,7 +67,6 @@ class SettingsFragment : Fragment(), BrowseSupportFragment.MainFragmentAdapterPr
         )
 
         gridView.adapter = SettingsAdapter(items)
-        gridView.requestFocus()
     }
 
     // CORRECCIÓN AQUÍ: Añadido <SettingsFragment> para que el compilador sea feliz
@@ -95,7 +96,44 @@ class SettingsFragment : Fragment(), BrowseSupportFragment.MainFragmentAdapterPr
                 }
 
                 itemView.setOnClickListener { item.onClick() }
+                itemView.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) {
+                        return@setOnKeyListener false
+                    }
+
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            item.onClick()
+                            true
+                        }
+
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            focusHomeHeaders()
+                        }
+
+                        else -> false
+                    }
+                }
             }
+        }
+
+        private fun focusHomeHeaders(): Boolean {
+            return findHomeFragment(requireActivity().supportFragmentManager.fragments)
+                ?.also { it.focusHeadersFromMainFragment() } != null
+        }
+
+        private fun findHomeFragment(fragments: List<Fragment>): HomeFragment? {
+            for (fragment in fragments) {
+                if (fragment is HomeFragment) {
+                    return fragment
+                }
+
+                findHomeFragment(fragment.childFragmentManager.fragments)?.let {
+                    return it
+                }
+            }
+
+            return null
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
