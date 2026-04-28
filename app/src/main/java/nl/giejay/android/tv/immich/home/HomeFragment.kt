@@ -2,10 +2,16 @@ package nl.giejay.android.tv.immich.home
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.text.TextUtils
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.leanback.app.BrowseSupportFragment
+import androidx.leanback.app.BrowseSupportFragment.BrowseTransitionListener
 import androidx.leanback.widget.ArrayObjectAdapter
 import androidx.leanback.widget.ClassPresenterSelector
 import androidx.leanback.widget.DividerPresenter
@@ -17,6 +23,7 @@ import androidx.leanback.widget.PresenterSelector
 import androidx.leanback.widget.Row
 import androidx.leanback.widget.RowHeaderPresenter
 import androidx.leanback.widget.SectionRow
+import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.album.AlbumFragment
 import nl.giejay.android.tv.immich.assets.AllAssetFragment
 import nl.giejay.android.tv.immich.assets.FolderFragment
@@ -31,12 +38,15 @@ import nl.giejay.android.tv.immich.settings.SettingsFragment
 import nl.giejay.android.tv.immich.shared.prefs.HIDDEN_HOME_ITEMS
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.shared.prefs.SHOW_FOLDERS_IN_MAIN_COLUMN
+import nl.giejay.android.tv.immich.videos.VideosBrowseFragment
 import timber.log.Timber
 
 class HomeFragment : BrowseSupportFragment() {
     private lateinit var mRowsAdapter: ArrayObjectAdapter
     private lateinit var rows: List<PageRow>
     private var showingFolders = false
+    private var dynamicTitle: String? = null
+    private var hidingTitleForHeaderTransition = false
     private val showFoldersPreferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == SHOW_FOLDERS_IN_MAIN_COLUMN.key() && ::mRowsAdapter.isInitialized) {
@@ -59,9 +69,29 @@ class HomeFragment : BrowseSupportFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         headersSupportFragment.setOnHeaderViewSelectedListener { _, row ->
-            title = row?.headerItem?.name ?: "-"
+            val headerTitle = row?.headerItem?.name ?: "-"
             selectedPosition = row?.let { mRowsAdapter.indexOf(it) } ?: 0
+            if (isShowingHeaders || isInHeadersTransition || dynamicTitle == null) {
+                clearDynamicTitle(displayTitleForHeader(headerTitle))
+            }
         }
+
+        setBrowseTransitionListener(object : BrowseTransitionListener() {
+            override fun onHeadersTransitionStart(withHeaders: Boolean) {
+                if (withHeaders) {
+                    clearDynamicTitle()
+                }
+            }
+
+            override fun onHeadersTransitionStop(withHeaders: Boolean) {
+                if (withHeaders) {
+                    clearDynamicTitle()
+                } else {
+                    (getMainFragment() as? VideosBrowseFragment)?.publishSelectedTitleIfVisible()
+                }
+                setTitleTextVisible(true)
+            }
+        })
 
         headersSupportFragment.setOnHeaderClickedListener { _, row ->
             if (!this.isInHeadersTransition) {
@@ -76,6 +106,13 @@ class HomeFragment : BrowseSupportFragment() {
             }
         }
         view.postDelayed({ refreshTitleFromSelectedRow() }, INITIAL_TITLE_REFRESH_DELAY_MS)
+    }
+
+    override fun startHeadersTransition(withHeaders: Boolean) {
+        if (!isInHeadersTransition && isShowingHeaders != withHeaders) {
+            hideTitleForHeaderTransition()
+        }
+        super.startHeadersTransition(withHeaders)
     }
 
     private fun setupUi() {
@@ -124,15 +161,108 @@ class HomeFragment : BrowseSupportFragment() {
         }
         if (selectedIndex != null) {
             selectedPosition = selectedIndex
-            title = visibleRows[selectedIndex].headerItem.name
+            title = displayTitleForHeader(visibleRows[selectedIndex].headerItem.name)
         } else if (!preserveSelectedHeader && visibleRows.isNotEmpty()) {
-            title = visibleRows[selectedPosition.coerceIn(0, visibleRows.size - 1)].headerItem.name
+            title = displayTitleForHeader(visibleRows[selectedPosition.coerceIn(0, visibleRows.size - 1)].headerItem.name)
         }
     }
 
     private fun refreshTitleFromSelectedRow() {
         getSelectedHeaderName()?.let { selectedHeaderName ->
-            title = selectedHeaderName
+            applyDynamicTitleStyle(dynamicTitle != null)
+            title = dynamicTitle ?: displayTitleForHeader(selectedHeaderName)
+        }
+    }
+
+    fun setDynamicTitle(title: String?) {
+        dynamicTitle = title
+        applyDynamicTitleStyle(title != null)
+        this.title = title ?: getSelectedHeaderName()?.let { displayTitleForHeader(it) } ?: "-"
+    }
+
+    private fun clearDynamicTitle(fallbackTitle: String? = getSelectedHeaderName()) {
+        dynamicTitle = null
+        applyDynamicTitleStyle(false)
+        title = fallbackTitle?.let { displayTitleForHeader(it) } ?: "-"
+    }
+
+    private fun displayTitleForHeader(headerTitle: String): String {
+        return if (headerTitle == VIDEOS_HEADER_NAME) "" else headerTitle
+    }
+
+    private fun applyDynamicTitleStyle(enabled: Boolean) {
+        val titleTextView = getTitleTextView()
+        if (titleTextView == null) {
+            view?.post { getTitleTextView()?.let { configureTitleTextStyle(it, enabled) } }
+            return
+        }
+
+        configureTitleTextStyle(titleTextView, enabled)
+    }
+
+    private fun getTitleTextView(): TextView? {
+        return getTitleView()?.findViewById(androidx.leanback.R.id.title_text)
+    }
+
+    private fun setTitleTextVisible(visible: Boolean) {
+        val visibility = if (visible) View.VISIBLE else View.INVISIBLE
+        hidingTitleForHeaderTransition = !visible
+        val titleTextView = getTitleTextView()
+        if (titleTextView == null) {
+            view?.post { getTitleTextView()?.visibility = visibility }
+            return
+        }
+
+        titleTextView.visibility = visibility
+    }
+
+    private fun hideTitleForHeaderTransition() {
+        hidingTitleForHeaderTransition = true
+        getTitleTextView()?.text = null
+        setTitleTextVisible(false)
+    }
+
+    private fun configureTitleTextStyle(titleTextView: TextView, enabled: Boolean) {
+        if (enabled) {
+            titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.video_dynamic_title_text_size))
+            titleTextView.setSingleLine(true)
+            titleTextView.maxLines = 1
+            titleTextView.maxWidth = resources.getDimensionPixelSize(R.dimen.video_dynamic_title_max_width)
+            titleTextView.ellipsize = TextUtils.TruncateAt.END
+            titleTextView.marqueeRepeatLimit = 0
+            titleTextView.gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            titleTextView.textAlignment = View.TEXT_ALIGNMENT_TEXT_END
+            titleTextView.includeFontPadding = false
+            titleTextView.isSelected = false
+            titleTextView.setBackgroundResource(R.drawable.bg_video_dynamic_title)
+            val horizontalPadding = resources.getDimensionPixelSize(R.dimen.video_dynamic_title_padding_horizontal)
+            val verticalPadding = resources.getDimensionPixelSize(R.dimen.video_dynamic_title_padding_vertical)
+            titleTextView.setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+            updateTitleTextHeight(titleTextView, resources.getDimensionPixelSize(androidx.leanback.R.dimen.lb_browse_title_height))
+            return
+        }
+
+        titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(androidx.leanback.R.dimen.lb_browse_title_text_size))
+        titleTextView.setSingleLine(true)
+        titleTextView.maxLines = 1
+        titleTextView.maxWidth = Int.MAX_VALUE
+        titleTextView.ellipsize = TextUtils.TruncateAt.END
+        titleTextView.marqueeRepeatLimit = 0
+        titleTextView.gravity = Gravity.END
+        titleTextView.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+        titleTextView.includeFontPadding = true
+        titleTextView.isSelected = false
+        titleTextView.background = null
+        titleTextView.setPadding(0, 0, 0, 0)
+        updateTitleTextHeight(titleTextView, resources.getDimensionPixelSize(androidx.leanback.R.dimen.lb_browse_title_height))
+    }
+
+    private fun updateTitleTextHeight(titleTextView: TextView, height: Int) {
+        titleTextView.layoutParams?.let { layoutParams ->
+            if (layoutParams.height != height) {
+                layoutParams.height = height
+                titleTextView.layoutParams = layoutParams
+            }
         }
     }
 
@@ -205,10 +335,12 @@ class HomeFragment : BrowseSupportFragment() {
 
     companion object {
         private const val FOLDERS_HEADER_NAME = "Folders"
+        private const val VIDEOS_HEADER_NAME = "Videos"
         private const val INITIAL_TITLE_REFRESH_DELAY_MS = 250L
         private const val HEADERS_FOCUS_RETRY_DELAY_MS = 150L
 
         private val HEADERS: List<Header> = listOf(
+            Header(VIDEOS_HEADER_NAME) { VideosBrowseFragment() },
             Header("Timeline") { nl.giejay.android.tv.immich.assets.IntegratedTimelineFragment() },
             Header("People") { PeopleFragment() },
             Header("On This Day") { OnThisDayBrowseFragment() },

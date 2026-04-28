@@ -25,6 +25,8 @@ import nl.giejay.android.tv.immich.shared.prefs.HOST_NAME
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.shared.viewmodel.KeyEventsViewModel
 import nl.giejay.mediaslider.config.MediaSliderConfiguration
+import nl.giejay.mediaslider.model.SliderItemType
+import nl.giejay.mediaslider.model.SliderItemViewHolder
 import nl.giejay.mediaslider.view.MediaSliderFragment
 import nl.giejay.mediaslider.view.MediaSliderView
 import nl.giejay.android.tv.immich.shared.cache.FavoriteCache
@@ -35,6 +37,7 @@ class ImmichMediaSlider : MediaSliderFragment() {
     private lateinit var apiClient: ApiClient
     private lateinit var config: MediaSliderConfiguration
     private lateinit var keyEvents: KeyEventsViewModel
+    private var lastRecordedRecentVideoId: String? = null
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -65,6 +68,7 @@ class ImmichMediaSlider : MediaSliderFragment() {
         }
 
         setupApiClient()
+        configureVideoStateCallbacks(view)
 
         // Listen for delete button (PROG_RED) normal press events
         lifecycleScope.launch {
@@ -132,6 +136,50 @@ class ImmichMediaSlider : MediaSliderFragment() {
                 PreferenceManager.get(DEBUG_MODE)
             )
         )
+    }
+
+    private fun configureVideoStateCallbacks(view: View) {
+        if (view !is MediaSliderView) {
+            return
+        }
+
+        view.onSliderItemSelected = { itemHolder ->
+            recordRecentVideo(itemHolder)
+        }
+
+        view.getVideoPlaybackPositionSeconds = { assetId ->
+            apiClient.getVideoPlayback(assetId).fold(
+                { error ->
+                    Timber.e("Could not load video playback position for $assetId: $error")
+                    null
+                },
+                { response -> response.positionSeconds }
+            )
+        }
+
+        view.onVideoPlaybackPositionChanged = { assetId, positionSeconds ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                apiClient.updateVideoPlayback(assetId, positionSeconds).fold(
+                    { error -> Timber.e("Could not save video playback position for $assetId: $error") },
+                    { response -> Timber.d("Saved video playback position for ${response.assetId}: ${response.positionSeconds}") }
+                )
+            }
+        }
+    }
+
+    private fun recordRecentVideo(itemHolder: SliderItemViewHolder) {
+        val item = itemHolder.mainItem
+        if (item.type != SliderItemType.VIDEO || item.id == lastRecordedRecentVideoId) {
+            return
+        }
+
+        lastRecordedRecentVideoId = item.id
+        lifecycleScope.launch(Dispatchers.IO) {
+            apiClient.updateRecentVideo(item.id).fold(
+                { error -> Timber.e("Could not update recent video ${item.id}: $error") },
+                { Timber.d("Updated recent video ${item.id}") }
+            )
+        }
     }
 
     private fun setupKeyInterceptor(view: View) {

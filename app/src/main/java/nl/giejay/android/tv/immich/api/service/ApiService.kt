@@ -10,7 +10,11 @@ import nl.giejay.android.tv.immich.api.model.PeopleResponse
 import nl.giejay.android.tv.immich.api.model.SearchRequest
 import nl.giejay.android.tv.immich.api.model.SearchResponse
 import nl.giejay.android.tv.immich.api.model.DeleteAssetsRequest
+import nl.giejay.android.tv.immich.api.model.RecentVideoUpdateRequest
 import nl.giejay.android.tv.immich.api.model.UpdateAssetRequest
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackEntry
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackResponse
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -52,6 +56,21 @@ interface ApiService {
 
     @GET("assets/{id}")
     suspend fun getAsset(@Path("id") id: String): Response<Asset>
+
+    @GET("users/me/recent-videos")
+    suspend fun getRecentVideos(): Response<List<Asset>>
+
+    @PUT("users/me/recent-videos")
+    suspend fun updateRecentVideos(@Body body: RecentVideoUpdateRequest): Response<List<Asset>>
+
+    @GET("users/me/video-playback")
+    suspend fun getVideoPlaybacks(): Response<List<VideoPlaybackEntry>>
+
+    @GET("users/me/video-playback/{id}")
+    suspend fun getVideoPlayback(@Path("id") id: String): Response<VideoPlaybackResponse>
+
+    @PUT("users/me/video-playback")
+    suspend fun updateVideoPlayback(@Body body: VideoPlaybackUpdateRequest): Response<VideoPlaybackResponse>
 
     @GET("view/folder/unique-paths")
     suspend fun getUniquePaths(): Response<List<String>>

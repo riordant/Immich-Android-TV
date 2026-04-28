@@ -9,7 +9,11 @@ import nl.giejay.android.tv.immich.api.model.Asset
 import nl.giejay.android.tv.immich.api.model.Bucket
 import nl.giejay.android.tv.immich.api.model.Folder
 import nl.giejay.android.tv.immich.api.model.Person
+import nl.giejay.android.tv.immich.api.model.RecentVideoUpdateRequest
 import nl.giejay.android.tv.immich.api.model.SearchRequest
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackEntry
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackResponse
+import nl.giejay.android.tv.immich.api.model.VideoPlaybackUpdateRequest
 import nl.giejay.android.tv.immich.api.service.ApiService
 import nl.giejay.android.tv.immich.api.util.ApiUtil.executeAPICall
 import nl.giejay.android.tv.immich.shared.prefs.ContentType
@@ -125,6 +129,41 @@ class ApiClient(private val config: ApiClientConfig) {
         return listAssets(page, pageCount, true, "desc",
             contentType = contentType, fromDate = now.minusMonths(PreferenceManager.get(RECENT_ASSETS_MONTHS_BACK).toLong()), endDate = now)
             .map { it.shuffled() }
+    }
+
+    suspend fun videoAssets(page: Int, pageCount: Int): Either<String, List<Asset>> {
+        return listAssets(
+            page,
+            pageCount,
+            false,
+            "desc",
+            contentType = ContentType.VIDEO
+        )
+    }
+
+    suspend fun getRecentVideos(): Either<String, List<Asset>> {
+        return executeAPICall(200) { service.getRecentVideos() }
+            .map { it.filter(excludeByTag()) }
+    }
+
+    suspend fun updateRecentVideo(assetId: String): Either<String, List<Asset>> {
+        return executeAPICall(200) {
+            service.updateRecentVideos(RecentVideoUpdateRequest(assetId))
+        }.map { it.filter(excludeByTag()) }
+    }
+
+    suspend fun getVideoPlaybacks(): Either<String, List<VideoPlaybackEntry>> {
+        return executeAPICall(200) { service.getVideoPlaybacks() }
+    }
+
+    suspend fun getVideoPlayback(assetId: String): Either<String, VideoPlaybackResponse> {
+        return executeAPICall(200) { service.getVideoPlayback(assetId) }
+    }
+
+    suspend fun updateVideoPlayback(assetId: String, positionSeconds: Int): Either<String, VideoPlaybackResponse> {
+        return executeAPICall(200) {
+            service.updateVideoPlayback(VideoPlaybackUpdateRequest(assetId, positionSeconds))
+        }
     }
 
     suspend fun similarAssets(page: Int, pageCount: Int, contentType: ContentType): Either<String, List<Asset>> {
