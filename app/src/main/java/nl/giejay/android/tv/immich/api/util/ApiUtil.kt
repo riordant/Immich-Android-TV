@@ -10,6 +10,15 @@ import java.util.UUID
 
 object ApiUtil {
 
+    fun normalizeHostName(hostName: String): String {
+        val trimmedHost = hostName.trim().trimEnd('/')
+        return if (trimmedHost.endsWith("/api", ignoreCase = true)) {
+            trimmedHost.dropLast(4).trimEnd('/')
+        } else {
+            trimmedHost
+        }
+    }
+
     fun getThumbnailUrl(assetId: String?, format: String): String? {
         return assetId?.let {
             "${hostName().lowercase()}/api/assets/${it}/thumbnail?size=${format}"
@@ -17,7 +26,7 @@ object ApiUtil {
     }
 
     private fun hostName(): String {
-        return PreferenceManager.get(HOST_NAME)
+        return normalizeHostName(PreferenceManager.get(HOST_NAME))
     }
 
     fun getFileUrl(assetId: String?, type: String): String? {

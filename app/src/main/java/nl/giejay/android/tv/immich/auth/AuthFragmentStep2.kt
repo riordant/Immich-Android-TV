@@ -8,9 +8,10 @@ import androidx.leanback.app.GuidedStepSupportFragment
 import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
 import androidx.leanback.widget.GuidedActionEditText
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import nl.giejay.android.tv.immich.R
+import nl.giejay.android.tv.immich.api.ApiClient
+import nl.giejay.android.tv.immich.api.util.ApiUtil.normalizeHostName
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addAction
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addCheckedAction
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addEditableAction
@@ -93,11 +94,12 @@ class AuthFragmentStep2 : GuidedStepSupportFragment() {
             if (entry.isValid()) {
                 PreferenceManager.save(SCREENSAVER_ALBUMS, emptySet())
                 PreferenceManager.save(API_KEY, entry.apiKey)
-                PreferenceManager.save(HOST_NAME, entry.hostName)
+                PreferenceManager.save(HOST_NAME, normalizeHostName(entry.hostName))
                 PreferenceManager.save(DISABLE_SSL_VERIFICATION, findActionById(ACTION_CHECK_CERTS)?.isChecked == true)
                 PreferenceManager.save(DEBUG_MODE, findActionById(ACTION_DEBUG_MODE)?.isChecked == true)
                 val navControl = findNavController()
-                navControl.navigate(AuthFragmentStep2Directions.actionGlobalHomeFragment(), NavOptions.Builder().setPopUpTo(R.id.authFragment, true).build())
+                ApiClient.invalidate()
+                navControl.navigateToFreshHome(AuthFragmentStep2Directions.actionGlobalHomeFragment())
             } else if (entry.hostName.isEmpty()) {
                 Toast.makeText(activity, "Please enter a server URL (https://...)", Toast.LENGTH_SHORT)
                     .show()

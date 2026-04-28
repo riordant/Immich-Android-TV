@@ -40,9 +40,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nl.giejay.android.tv.immich.ImmichApplication
 import nl.giejay.android.tv.immich.R
+import nl.giejay.android.tv.immich.api.ApiClient
 import nl.giejay.android.tv.immich.api.AuthenticationClient
 import nl.giejay.android.tv.immich.api.service.DeviceConfigResponse
 import nl.giejay.android.tv.immich.api.service.ImmichAuthenticationService
+import nl.giejay.android.tv.immich.api.util.ApiUtil.normalizeHostName
 import nl.giejay.android.tv.immich.databinding.FragmentAuthByPhoneBinding
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
 import nl.giejay.android.tv.immich.shared.prefs.HOST_NAME
@@ -113,11 +115,10 @@ class AuthByPhoneFragment : Fragment() {
                 )
             ) {
                 PreferenceManager.save(API_KEY, config.configuration.apiKey)
-                PreferenceManager.save(HOST_NAME, config.configuration.host)
-                findNavController.navigate(
-                    AuthByPhoneFragmentDirections.actionGlobalHomeFragment(),
-                    NavOptions.Builder().setPopUpTo(R.id.authFragment, true)
-                        .build()
+                PreferenceManager.save(HOST_NAME, normalizeHostName(config.configuration.host))
+                ApiClient.invalidate()
+                findNavController.navigateToFreshHome(
+                    AuthByPhoneFragmentDirections.actionGlobalHomeFragment()
                 )
             } else {
                 showErrorMessage("Invalid Server URL or API key, try scanning again!")

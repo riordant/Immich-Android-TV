@@ -5,13 +5,16 @@ import android.os.Bundle
 import androidx.leanback.app.GuidedStepSupportFragment
 import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import nl.giejay.android.tv.immich.BuildConfig
 import nl.giejay.android.tv.immich.R
+import nl.giejay.android.tv.immich.api.ApiClient
+import nl.giejay.android.tv.immich.api.util.ApiUtil.normalizeHostName
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addAction
 import nl.giejay.android.tv.immich.shared.guidedstep.GuidedStepUtil.addCheckedAction
 import nl.giejay.android.tv.immich.shared.prefs.API_KEY
+import nl.giejay.android.tv.immich.shared.prefs.DEBUG_MODE
+import nl.giejay.android.tv.immich.shared.prefs.DISABLE_SSL_VERIFICATION
 import nl.giejay.android.tv.immich.shared.prefs.HOST_NAME
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
 import nl.giejay.android.tv.immich.shared.prefs.SCREENSAVER_ALBUMS
@@ -76,17 +79,21 @@ class AuthFragmentStep1 : GuidedStepSupportFragment() {
         super.onGuidedActionClicked(action)
         Timber.i("Clicked ${action.title} on step 1 of authentication, option: ${SELECTED_OPTION}")
         if (action.id == ACTION_CONTINUE) {
-            val hostName = requireContext().resources.getString(R.string.host_name)
+            val hostName = normalizeHostName(requireContext().resources.getString(R.string.host_name))
             val navController = findNavController()
             if (SELECTED_OPTION == ACTION_DEMO) {
                 PreferenceManager.save(SCREENSAVER_ALBUMS, emptySet())
                 PreferenceManager.save(API_KEY, requireContext().resources.getString(R.string.api_key))
                 PreferenceManager.save(HOST_NAME, hostName)
-                navController.navigate(AuthFragmentStep1Directions.actionGlobalHomeFragment(), NavOptions.Builder().setPopUpTo(R.id.authFragment, true).build())
+                PreferenceManager.save(DISABLE_SSL_VERIFICATION, DISABLE_SSL_VERIFICATION.defaultValue)
+                PreferenceManager.save(DEBUG_MODE, DEBUG_MODE.defaultValue)
+                ApiClient.invalidate()
+                navController.navigateToFreshHome(AuthFragmentStep1Directions.actionGlobalHomeFragment())
             } else if (SELECTED_OPTION == ACTION_SIGN_IN) {
                 if (PreferenceManager.get(HOST_NAME) == hostName) {
                     // remove demo instance api key
                     PreferenceManager.removeApiSettings()
+                    ApiClient.invalidate()
                 }
                 if (navController.currentDestination?.id == R.id.authFragment) {
                     Timber.i("Navigating to step 2")

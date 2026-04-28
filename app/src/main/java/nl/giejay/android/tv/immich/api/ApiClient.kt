@@ -32,6 +32,7 @@ import java.util.UUID
 import nl.giejay.android.tv.immich.api.model.BucketResponse
 import nl.giejay.android.tv.immich.api.model.DeleteAssetsRequest
 import nl.giejay.android.tv.immich.api.model.UpdateAssetRequest
+import nl.giejay.android.tv.immich.api.util.ApiUtil.normalizeHostName
 import timber.log.Timber
 import java.util.Calendar
 import java.util.Date
@@ -47,8 +48,12 @@ class ApiClient(private val config: ApiClientConfig) {
     companion object ApiClient {
         private var apiClient: nl.giejay.android.tv.immich.api.ApiClient? = null
         fun getClient(config: ApiClientConfig): nl.giejay.android.tv.immich.api.ApiClient {
-            if (config != apiClient?.config) {
-                apiClient = ApiClient(config)
+            val normalizedConfig = config.copy(
+                hostName = normalizeHostName(config.hostName),
+                apiKey = config.apiKey.trim()
+            )
+            if (normalizedConfig != apiClient?.config) {
+                apiClient = ApiClient(normalizedConfig)
             }
             return apiClient!!
         }
@@ -65,7 +70,7 @@ class ApiClient(private val config: ApiClientConfig) {
     private val retrofit = Retrofit.Builder()
         .client(ApiClientFactory.getClient(config.disableSslVerification, config.apiKey, config.debugMode))
         .addConverterFactory(GsonConverterFactory.create())
-        .baseUrl("${config.hostName}/api/")
+        .baseUrl("${normalizeHostName(config.hostName)}/api/")
         .build()
 
     private val service: ApiService = retrofit.create(ApiService::class.java)
