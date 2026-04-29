@@ -1,6 +1,7 @@
 package nl.giejay.android.tv.immich.home
 
 import android.content.SharedPreferences
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.TypedValue
@@ -225,6 +226,8 @@ class HomeFragment : BrowseSupportFragment() {
     private fun configureTitleTextStyle(titleTextView: TextView, enabled: Boolean) {
         if (enabled) {
             titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.video_dynamic_title_text_size))
+            titleTextView.setTextColor(resources.getColor(android.R.color.white, null))
+            titleTextView.setTypeface(titleTextView.typeface, Typeface.BOLD)
             titleTextView.setSingleLine(true)
             titleTextView.maxLines = 1
             titleTextView.maxWidth = resources.getDimensionPixelSize(R.dimen.video_dynamic_title_max_width)

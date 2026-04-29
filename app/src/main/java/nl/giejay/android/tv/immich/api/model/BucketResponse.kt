@@ -1,7 +1,5 @@
 package nl.giejay.android.tv.immich.api.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Respuesta "Columnar" del servidor.
  * Recibimos listas de propiedades y las convertimos en objetos Asset.
@@ -12,6 +10,7 @@ data class BucketResponse(
     val deviceAssetId: List<String?>?,
     val originalPath: List<String?>?,
     val originalFileName: List<String?>?,
+    val thumbhash: List<String?>?,
     // El JSON tiene city y country, los usaremos para crear un Exif parcial
     val city: List<String?>?,
     val country: List<String?>?
@@ -53,7 +52,8 @@ data class BucketResponse(
                 people = null,
                 tags = null,
                 originalPath = originalPath?.getOrNull(i),
-                originalFileName = originalFileName?.getOrNull(i)
+                originalFileName = originalFileName?.getOrNull(i),
+                thumbhash = thumbhash?.getOrNull(i)
             )
             assets.add(asset)
         }

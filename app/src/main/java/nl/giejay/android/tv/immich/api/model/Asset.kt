@@ -32,5 +32,6 @@ data class Asset(
     val tags: List<Tag>?,
     val originalPath: String?,
     val originalFileName: String?,
+    val thumbhash: String? = null,
     val isFavorite: Boolean = false // <--- ¡ESTE ERA EL CAMPO QUE FALTABA!
 )

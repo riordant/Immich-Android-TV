@@ -1,5 +1,6 @@
 package nl.giejay.android.tv.immich.api.util
 
+import android.net.Uri
 import arrow.core.Either
 import nl.giejay.android.tv.immich.shared.prefs.HOST_NAME
 import nl.giejay.android.tv.immich.shared.prefs.PreferenceManager
@@ -19,9 +20,14 @@ object ApiUtil {
         }
     }
 
-    fun getThumbnailUrl(assetId: String?, format: String): String? {
+    fun getThumbnailUrl(assetId: String?, format: String, cacheKey: String? = null): String? {
         return assetId?.let {
-            "${hostName().lowercase()}/api/assets/${it}/thumbnail?size=${format}"
+            buildUrl(
+                "/api/assets/${it}/thumbnail",
+                "size" to format,
+                "edited" to "true",
+                "c" to cacheKey
+            )
         }
     }
 
@@ -29,7 +35,7 @@ object ApiUtil {
         return normalizeHostName(PreferenceManager.get(HOST_NAME))
     }
 
-    fun getFileUrl(assetId: String?, type: String): String? {
+    fun getFileUrl(assetId: String?, type: String, cacheKey: String? = null): String? {
         return when (type) {
             "VIDEO" ->
                 assetId?.let {
@@ -38,10 +44,24 @@ object ApiUtil {
 
             else ->
                 assetId?.let {
-                    "${hostName().lowercase()}/api/assets/${it}/original"
+                    buildUrl(
+                        "/api/assets/${it}/original",
+                        "edited" to "true",
+                        "c" to cacheKey
+                    )
                 }
 
         }
+    }
+
+    private fun buildUrl(path: String, vararg params: Pair<String, String?>): String {
+        return Uri.parse("${hostName().lowercase()}$path").buildUpon().apply {
+            for ((key, value) in params) {
+                if (!value.isNullOrBlank()) {
+                    appendQueryParameter(key, value)
+                }
+            }
+        }.build().toString()
     }
 
     fun getPersonThumbnail(personId: UUID): String {

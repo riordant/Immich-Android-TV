@@ -403,7 +403,7 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
             (holder as? ViewHolder)?.gridView?.apply {
                 setFocusScrollStrategy(BaseGridView.FOCUS_SCROLL_ALIGNED)
                 setWindowAlignment(BaseGridView.WINDOW_ALIGN_NO_EDGE)
-                setWindowAlignmentOffset(resources.getDimensionPixelSize(nl.giejay.android.tv.immich.R.dimen.card_spacing))
+                setWindowAlignmentOffset(resources.getDimensionPixelSize(R.dimen.video_row_start_offset))
                 setWindowAlignmentOffsetPercent(BaseGridView.WINDOW_ALIGN_OFFSET_PERCENT_DISABLED)
                 setItemAlignmentOffset(0)
                 setItemAlignmentOffsetPercent(BaseGridView.ITEM_ALIGN_OFFSET_PERCENT_DISABLED)

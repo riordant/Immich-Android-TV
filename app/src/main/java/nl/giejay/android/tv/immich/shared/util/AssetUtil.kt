@@ -73,7 +73,7 @@ fun List<Asset>.toSliderItems(keepOrder: Boolean, mergePortrait: Boolean): List<
 
 fun Asset.toSliderItem(): SliderItem {
     return SliderItem(this.id,
-        ApiUtil.getFileUrl(this.id, this.type),
+        ApiUtil.getFileUrl(this.id, this.type, this.thumbhash),
         SliderItemType.valueOf(this.type.uppercase()),
         mapOf(MetaDataType.DATE to this.exifInfo?.dateTimeOriginal?.let { formatDate(it) },
             MetaDataType.CITY to this.exifInfo?.city,
@@ -84,7 +84,7 @@ fun Asset.toSliderItem(): SliderItem {
             MetaDataType.PEOPLE to this.people?.map { it.name }?.filter { it?.isNotBlank() == true }?.joinToString(", "),
             MetaDataType.FILEPATH to this.originalPath,
             MetaDataType.CAMERA to (listOf(this.exifInfo?.make, this.exifInfo?.model)).filterNotNull().joinToString(" ")),
-        ApiUtil.getThumbnailUrl(this.id, "preview"),
+        ApiUtil.getThumbnailUrl(this.id, "preview", this.thumbhash),
         this.isFavorite // <--- PASAMOS EL VALOR
     )
 }
@@ -110,8 +110,8 @@ fun Asset.toCard(): Card {
         title = this.originalFileName ?: "",
         description = this.exifInfo?.description ?: "",
         id = this.id,
-        thumbnailUrl = ApiUtil.getThumbnailUrl(this.id, "thumbnail"),
-        backgroundUrl = ApiUtil.getThumbnailUrl(this.id, "preview"),
+        thumbnailUrl = ApiUtil.getThumbnailUrl(this.id, "thumbnail", this.thumbhash),
+        backgroundUrl = ApiUtil.getThumbnailUrl(this.id, "preview", this.thumbhash),
         isVideo = this.type == "VIDEO",
         
         // --- ¡¡ESTA LÍNEA FALTABA!! ---

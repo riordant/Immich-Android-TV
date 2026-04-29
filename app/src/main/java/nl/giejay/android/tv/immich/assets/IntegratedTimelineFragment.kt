@@ -476,8 +476,8 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
                 id = asset.id,
                 title = "",
                 description = "",
-                thumbnailUrl = ApiUtil.getThumbnailUrl(asset.id, "thumbnail"),
-                backgroundUrl = ApiUtil.getThumbnailUrl(asset.id, "preview"),
+                thumbnailUrl = ApiUtil.getThumbnailUrl(asset.id, "thumbnail", asset.thumbhash),
+                backgroundUrl = ApiUtil.getThumbnailUrl(asset.id, "preview", asset.thumbhash),
                 isVideo = asset.type == "VIDEO",
                 isFavorite = asset.isFavorite
             )
