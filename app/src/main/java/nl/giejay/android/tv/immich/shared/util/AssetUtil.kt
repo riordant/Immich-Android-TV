@@ -105,7 +105,7 @@ fun List<Asset>.toCards(): List<Card> {
 }
 
 // CORREGIDA: Ahora detecta VIDEO y FAVORITOS
-fun Asset.toCard(): Card {
+fun Asset.toCard(videoPlaybackPositionSeconds: Int? = null): Card {
     return Card(
         title = this.originalFileName ?: "",
         description = this.exifInfo?.description ?: "",
@@ -115,7 +115,9 @@ fun Asset.toCard(): Card {
         isVideo = this.type == "VIDEO",
         
         // --- ¡¡ESTA LÍNEA FALTABA!! ---
-        isFavorite = this.isFavorite
+        isFavorite = this.isFavorite,
         // ------------------------------
+        videoDuration = this.duration,
+        videoPlaybackPositionSeconds = videoPlaybackPositionSeconds
     )
 }

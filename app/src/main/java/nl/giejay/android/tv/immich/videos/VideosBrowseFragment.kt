@@ -1,10 +1,19 @@
 package nl.giejay.android.tv.immich.videos
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
+import android.os.Build
 import android.os.Bundle
+import android.text.Layout
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -16,6 +25,7 @@ import android.widget.TextView
 import androidx.leanback.app.BrowseSupportFragment
 import androidx.leanback.app.RowsSupportFragment
 import androidx.leanback.widget.ArrayObjectAdapter
+import androidx.leanback.widget.BaseCardView
 import androidx.leanback.widget.BaseGridView
 import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ImageCardView
@@ -63,7 +73,9 @@ private data class VideosCacheKey(
 )
 
 private data class VideosCacheValue(
-    val assets: List<Asset>
+    val assets: List<Asset>,
+    val recentAssets: List<Asset>,
+    val playbackPositions: Map<String, Int>
 )
 
 private object VideosCache {
@@ -89,8 +101,9 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     private var sliderItems: List<SliderItemViewHolder> = emptyList()
     private var videoAssets: List<Asset> = emptyList()
     private var recentVideoAssets: List<Asset> = emptyList()
+    private var videoPlaybackPositions: Map<String, Int> = emptyMap()
     private var hasLoadedVideos = false
-    private var selectedVideoTitle: String = VIDEOS_TITLE
+    private var isRefreshingRecentState = false
 
     private val mMainFragmentAdapter = BrowseSupportFragment.MainFragmentAdapter(this)
 
@@ -150,7 +163,7 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     override fun onResume() {
         super.onResume()
         if (hasLoadedVideos) {
-            refreshRecentVideos()
+            refreshRecentState()
         }
     }
 
@@ -194,19 +207,21 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     private fun loadVideos() {
         val requestKey = cacheKey()
         VideosCache.get(requestKey)?.let { cached ->
-            videoAssets = cached.assets
-            hasLoadedVideos = true
-            refreshRecentVideos(showLoading = false)
+            applyCachedVideos(cached)
+            showLoading(false)
             return
         }
 
         ioScope.launch {
             try {
                 val assets = loadAllVideos()
+                val recentAssets = loadRecentVideos()
+                val playbackPositions = loadVideoPlaybackPositions()
                 videoAssets = assets
+                recentVideoAssets = recentAssets
+                videoPlaybackPositions = playbackPositions
                 hasLoadedVideos = true
-                VideosCache.put(requestKey, VideosCacheValue(assets))
-                recentVideoAssets = loadRecentVideos()
+                VideosCache.put(requestKey, VideosCacheValue(assets, recentAssets, playbackPositions))
                 updateSliderItems()
                 renderRows(videoAssets, recentVideoAssets)
                 showLoading(false)
@@ -215,6 +230,15 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
                 showLoading(false)
             }
         }
+    }
+
+    private fun applyCachedVideos(cached: VideosCacheValue) {
+        videoAssets = cached.assets
+        recentVideoAssets = cached.recentAssets
+        videoPlaybackPositions = cached.playbackPositions
+        hasLoadedVideos = true
+        updateSliderItems()
+        renderRows(videoAssets, recentVideoAssets)
     }
 
     private suspend fun loadAllVideos(): List<Asset> {
@@ -253,16 +277,34 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
         )
     }
 
-    private fun refreshRecentVideos(showLoading: Boolean = false) {
-        if (showLoading) {
-            showLoading(true)
+    private suspend fun loadVideoPlaybackPositions(): Map<String, Int> {
+        return apiClient.getVideoPlaybacks().fold(
+            { error ->
+                Timber.e("Error loading video playback positions: $error")
+                emptyMap()
+            },
+            { entries -> entries.associate { it.assetId to it.positionSeconds } }
+        )
+    }
+
+    private fun refreshRecentState() {
+        if (isRefreshingRecentState) {
+            return
         }
+        isRefreshingRecentState = true
 
         ioScope.launch {
-            recentVideoAssets = loadRecentVideos()
-            updateSliderItems()
-            renderRows(videoAssets, recentVideoAssets)
-            showLoading(false)
+            try {
+                recentVideoAssets = loadRecentVideos()
+                videoPlaybackPositions = loadVideoPlaybackPositions()
+                VideosCache.put(cacheKey(), VideosCacheValue(videoAssets, recentVideoAssets, videoPlaybackPositions))
+                updateSliderItems()
+                renderRows(videoAssets, recentVideoAssets)
+            } catch (e: Exception) {
+                Timber.e(e, "Exception refreshing recent video state")
+            } finally {
+                isRefreshingRecentState = false
+            }
         }
     }
 
@@ -273,19 +315,14 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     }
 
     private fun updateSelectedTitle(item: Any?) {
-        val card = item as? Card
-        selectedVideoTitle = card?.description?.takeIf { it.isNotBlank() }
-            ?: card?.title?.takeIf { it.isNotBlank() }
-            ?: VIDEOS_TITLE
-
         if (shouldShowSelectedTitle()) {
-            updateHomeTitle(selectedVideoTitle)
+            clearHomeTitle()
         }
     }
 
     fun publishSelectedTitleIfVisible() {
         if (shouldShowSelectedTitle()) {
-            updateHomeTitle(selectedVideoTitle)
+            clearHomeTitle()
         }
     }
 
@@ -327,7 +364,7 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
                 val recentHeader = HeaderItem(CONTINUE_WATCHING_HEADER_ID, "Continue Watching")
                 val recentRowAdapter = ArrayObjectAdapter(cardPresenter)
                 recentAssets.forEach { asset ->
-                    recentRowAdapter.add(asset.toCard())
+                    recentRowAdapter.add(asset.toCard(videoPlaybackPositions[asset.id]))
                 }
                 rowsAdapter.add(ListRow(recentHeader, recentRowAdapter))
             }
@@ -338,7 +375,7 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
                     val header = HeaderItem(year.toLong(), year.toString())
                     val listRowAdapter = ArrayObjectAdapter(cardPresenter)
                     yearAssets.forEach { asset ->
-                        listRowAdapter.add(asset.toCard())
+                        listRowAdapter.add(asset.toCard(videoPlaybackPositions[asset.id]))
                     }
                     rowsAdapter.add(ListRow(header, listRowAdapter))
                 }
@@ -385,14 +422,134 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     private class VideosCardPresenter(context: Context) : CardPresenter(context) {
         override fun onBindViewHolder(card: ICard, cardView: ImageCardView) {
             super.onBindViewHolder(card, cardView)
-            val existingForeground = cardView.mainImageView?.foreground
-            val focusBorder = cardView.context.getDrawable(R.drawable.bg_video_card_focus)
-
-            if (existingForeground != null && focusBorder != null) {
-                cardView.mainImageView?.foreground = LayerDrawable(arrayOf(focusBorder, existingForeground))
-            } else {
-                cardView.mainImageView?.foreground = focusBorder ?: existingForeground
+            if (card is Card && card.isVideo) {
+                val videoTitle = card.description?.trim().orEmpty()
+                if (videoTitle.isNotEmpty()) {
+                    cardView.cardType = BaseCardView.CARD_TYPE_INFO_UNDER
+                    cardView.titleText = videoTitle
+                    cardView.contentText = null
+                    styleVideoTitle(cardView)
+                } else {
+                    cardView.cardType = BaseCardView.CARD_TYPE_MAIN_ONLY
+                    cardView.titleText = null
+                    cardView.contentText = null
+                }
             }
+
+            applyVideoForeground(card, cardView)
+        }
+
+        private fun styleVideoTitle(cardView: ImageCardView) {
+            cardView.setInfoAreaBackgroundColor(Color.BLACK)
+            cardView.findViewById<TextView>(androidx.leanback.R.id.title_text)?.apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.video_card_title_text_size))
+                setTextColor(Color.WHITE)
+                setTypeface(typeface, Typeface.BOLD)
+                setSingleLine(false)
+                minLines = 1
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    breakStrategy = Layout.BREAK_STRATEGY_SIMPLE
+                    hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
+                }
+            }
+            cardView.findViewById<TextView>(androidx.leanback.R.id.content_text)?.visibility = View.GONE
+        }
+
+        private fun applyVideoForeground(card: ICard, cardView: ImageCardView) {
+            val foregroundLayers = mutableListOf<Drawable>()
+            cardView.mainImageView?.foreground?.let { foregroundLayers.add(it) }
+
+            if (card is Card) {
+                getPlaybackProgressPercent(card)?.let { progressPercent ->
+                    foregroundLayers.add(
+                        VideoProgressDrawable(
+                            progressPercent = progressPercent,
+                            trackColor = Color.argb(120, 0, 0, 0),
+                            progressColor = Color.WHITE,
+                            heightPx = cardView.resources.getDimensionPixelSize(R.dimen.video_thumbnail_progress_height),
+                            horizontalInsetPx = cardView.resources.getDimensionPixelSize(R.dimen.video_thumbnail_progress_horizontal_inset),
+                            bottomInsetPx = cardView.resources.getDimensionPixelSize(R.dimen.video_thumbnail_progress_bottom_inset),
+                            cornerRadiusPx = cardView.resources.getDimension(R.dimen.video_thumbnail_progress_corner_radius)
+                        )
+                    )
+                }
+            }
+
+            cardView.context.getDrawable(R.drawable.bg_video_card_focus)?.let { foregroundLayers.add(it) }
+            cardView.mainImageView?.foreground = when (foregroundLayers.size) {
+                0 -> null
+                1 -> foregroundLayers.first()
+                else -> LayerDrawable(foregroundLayers.toTypedArray())
+            }
+        }
+
+        private fun getPlaybackProgressPercent(card: Card): Float? {
+            val positionSeconds = card.videoPlaybackPositionSeconds?.takeIf { it > 0 } ?: return null
+            val durationSeconds = parseDurationSeconds(card.videoDuration) ?: return null
+            if (durationSeconds <= 0) {
+                return null
+            }
+
+            return ((positionSeconds.toFloat() / durationSeconds) * 100f).coerceIn(0f, 100f)
+        }
+
+        private fun parseDurationSeconds(duration: String?): Int? {
+            val text = duration?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+            val seconds = text.split(":").fold(0.0) { total, part ->
+                val parsedPart = part.toDoubleOrNull() ?: return null
+                (total * 60) + parsedPart
+            }
+
+            return seconds.toInt().takeIf { it > 0 }
+        }
+    }
+
+    private class VideoProgressDrawable(
+        private val progressPercent: Float,
+        private val trackColor: Int,
+        private val progressColor: Int,
+        private val heightPx: Int,
+        private val horizontalInsetPx: Int,
+        private val bottomInsetPx: Int,
+        private val cornerRadiusPx: Float
+    ) : Drawable() {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val rect = RectF()
+
+        override fun draw(canvas: Canvas) {
+            val width = bounds.width() - (horizontalInsetPx * 2)
+            if (width <= 0 || heightPx <= 0) {
+                return
+            }
+
+            val left = bounds.left + horizontalInsetPx.toFloat()
+            val right = bounds.right - horizontalInsetPx.toFloat()
+            val bottom = bounds.bottom - bottomInsetPx.toFloat()
+            val top = bottom - heightPx
+            rect.set(left, top, right, bottom)
+
+            paint.color = trackColor
+            canvas.drawRoundRect(rect, cornerRadiusPx, cornerRadiusPx, paint)
+
+            rect.right = left + (width * (progressPercent / 100f))
+            paint.color = progressColor
+            canvas.drawRoundRect(rect, cornerRadiusPx, cornerRadiusPx, paint)
+        }
+
+        override fun setAlpha(alpha: Int) {
+            paint.alpha = alpha
+        }
+
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            paint.colorFilter = colorFilter
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun getOpacity(): Int {
+            return PixelFormat.TRANSLUCENT
         }
     }
 
@@ -436,6 +593,5 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     companion object {
         private const val PAGE_SIZE = 200
         private const val CONTINUE_WATCHING_HEADER_ID = -1L
-        private const val VIDEOS_TITLE = "Videos"
     }
 }

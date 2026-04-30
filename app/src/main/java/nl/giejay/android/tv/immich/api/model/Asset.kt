@@ -24,6 +24,7 @@ data class Tag(
 data class Asset(
     val id: String,
     val type: String,
+    val duration: String? = null,
     val deviceAssetId: String?,
     val exifInfo: AssetExifInfo?,
     val fileModifiedAt: Date?,

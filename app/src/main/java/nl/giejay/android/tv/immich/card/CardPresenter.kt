@@ -28,10 +28,6 @@ open class CardPresenter(context: Context, style: Int = R.style.DefaultCardTheme
     var onLongClick: ((ICard) -> Unit)? = null
     var onClick: ((ICard) -> Unit)? = null
 
-    companion object {
-        private const val VIDEO_ICON_TAG = "VIDEO_OVERLAY_ICON"
-    }
-
     override fun onCreateView(): ImageCardView {
         val cardView = ImageCardView(context)
         
@@ -132,17 +128,6 @@ open class CardPresenter(context: Context, style: Int = R.style.DefaultCardTheme
         }
         
         val layers = mutableListOf<android.graphics.drawable.Drawable>()
-
-        if (card is nl.giejay.android.tv.immich.card.Card && card.isVideo) {
-            val playIcon = context.getDrawable(android.R.drawable.ic_media_play)?.mutate()
-            playIcon?.setTint(Color.WHITE)
-            if (playIcon != null) {
-                val layerPlay = LayerDrawable(arrayOf(playIcon))
-                layerPlay.setLayerGravity(0, Gravity.BOTTOM or Gravity.END)
-                layerPlay.setLayerInset(0, 0, 20, 20, 20)
-                layers.add(layerPlay)
-            }
-        }
 
         if (card is nl.giejay.android.tv.immich.card.Card && card.isFavorite) {
             val starIcon = context.getDrawable(nl.giejay.android.tv.immich.R.drawable.ic_favorite_white_filled_24dp)?.mutate()

@@ -35,7 +35,12 @@
     <dimen name="video_dynamic_title_padding_horizontal">18dp</dimen>
     <dimen name="video_dynamic_title_padding_vertical">8dp</dimen>
     <dimen name="video_dynamic_title_corner_radius">14dp</dimen>
+    <dimen name="video_card_title_text_size">16sp</dimen>
     <dimen name="video_card_focus_stroke_width">4dp</dimen>
+    <dimen name="video_thumbnail_progress_height">4dp</dimen>
+    <dimen name="video_thumbnail_progress_horizontal_inset">8dp</dimen>
+    <dimen name="video_thumbnail_progress_bottom_inset">8dp</dimen>
+    <dimen name="video_thumbnail_progress_corner_radius">2dp</dimen>
     <dimen name="video_row_start_offset">16dp</dimen>
     <dimen name="video_row_header_text_size">19sp</dimen>
     <dimen name="video_row_header_offset_start">43dp</dimen>

@@ -746,7 +746,6 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
             val view = viewHolder.view
             val imageView = view.findViewById<ImageView>(R.id.image_view)
             val favoriteIcon = view.findViewById<ImageView>(R.id.icon_favorite)
-            val videoIcon = view.findViewById<ImageView>(R.id.icon_video)
             applyTimelineCardDimensions(view)
 
             Glide.with(view.context)
@@ -756,7 +755,6 @@ class IntegratedTimelineFragment : Fragment(), BrowseSupportFragment.MainFragmen
                 .into(imageView)
 
             favoriteIcon.visibility = if (card.isFavorite) View.VISIBLE else View.GONE
-            videoIcon.visibility = if (card.isVideo) View.VISIBLE else View.GONE
 
             view.setOnClickListener {
                 openPhotoSlider(card)

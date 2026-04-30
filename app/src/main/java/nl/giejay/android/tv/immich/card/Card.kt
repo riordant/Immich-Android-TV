@@ -9,5 +9,7 @@ data class Card(
     val isVideo: Boolean = false,
     var isFavorite: Boolean = false, // <--- ESTE ES EL CAMPO QUE FALTABA
     override var selected: Boolean = false,
-    override val forceShowInfo: Boolean = false
+    override val forceShowInfo: Boolean = false,
+    val videoDuration: String? = null,
+    val videoPlaybackPositionSeconds: Int? = null
 ) : ICard

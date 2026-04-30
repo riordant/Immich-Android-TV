@@ -188,7 +188,7 @@ class HomeFragment : BrowseSupportFragment() {
     }
 
     private fun displayTitleForHeader(headerTitle: String): String {
-        return if (headerTitle == VIDEOS_HEADER_NAME) "" else headerTitle
+        return if (headerTitle == VIDEOS_HEADER_NAME) VIDEOS_DISPLAY_TITLE else headerTitle
     }
 
     private fun applyDynamicTitleStyle(enabled: Boolean) {
@@ -339,6 +339,7 @@ class HomeFragment : BrowseSupportFragment() {
     companion object {
         private const val FOLDERS_HEADER_NAME = "Folders"
         private const val VIDEOS_HEADER_NAME = "Videos"
+        private const val VIDEOS_DISPLAY_TITLE = "Video"
         private const val INITIAL_TITLE_REFRESH_DELAY_MS = 250L
         private const val HEADERS_FOCUS_RETRY_DELAY_MS = 150L
 
