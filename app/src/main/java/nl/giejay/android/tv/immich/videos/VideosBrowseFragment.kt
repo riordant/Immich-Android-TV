@@ -90,6 +90,11 @@ private object VideosCache {
         key = requestKey
         value = cacheValue
     }
+
+    fun clear() {
+        key = null
+        value = null
+    }
 }
 
 class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFragmentAdapterProvider {
@@ -591,6 +596,10 @@ class VideosBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFr
     }
 
     companion object {
+        fun clearCache() {
+            VideosCache.clear()
+        }
+
         private const val PAGE_SIZE = 200
         private const val CONTINUE_WATCHING_HEADER_ID = -1L
     }

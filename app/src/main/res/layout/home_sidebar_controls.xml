@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/home_sidebar_controls"
+    android:layout_width="@dimen/lb_browse_headers_width"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false"
+    android:focusable="false"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/home_sidebar_logo"
+        android:layout_width="@dimen/home_sidebar_logo_width"
+        android:layout_height="@dimen/home_sidebar_logo_height"
+        android:contentDescription="@string/home_sidebar_logo_content_description"
+        android:focusable="false"
+        android:scaleType="fitCenter"
+        android:src="@drawable/immich_logo_inline_dark_vector" />
+
+    <LinearLayout
+        android:id="@+id/home_sidebar_button_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/home_sidebar_buttons_margin_top"
+        android:translationX="@dimen/home_sidebar_buttons_translation_x"
+        android:clipToPadding="false"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/home_exit_button"
+            android:layout_width="@dimen/home_sidebar_button_size"
+            android:layout_height="@dimen/home_sidebar_button_size"
+            android:background="@drawable/bg_home_sidebar_round_button"
+            android:contentDescription="@string/home_sidebar_exit_content_description"
+            android:focusable="true"
+            android:padding="@dimen/home_sidebar_button_icon_padding"
+            android:scaleType="center"
+            android:src="@drawable/ic_home_exit_24" />
+
+        <ImageButton
+            android:id="@+id/home_refresh_button"
+            android:layout_width="@dimen/home_sidebar_button_size"
+            android:layout_height="@dimen/home_sidebar_button_size"
+            android:layout_marginStart="@dimen/home_sidebar_button_spacing"
+            android:background="@drawable/bg_home_sidebar_round_button"
+            android:contentDescription="@string/home_sidebar_refresh_content_description"
+            android:focusable="true"
+            android:padding="@dimen/home_sidebar_button_icon_padding"
+            android:scaleType="center"
+            android:src="@drawable/ic_home_refresh_24" />
+    </LinearLayout>
+</LinearLayout>

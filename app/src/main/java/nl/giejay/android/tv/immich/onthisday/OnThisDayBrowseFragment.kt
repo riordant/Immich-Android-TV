@@ -73,6 +73,11 @@ private object OnThisDayCache {
         key = requestKey
         value = cacheValue
     }
+
+    fun clear() {
+        key = null
+        value = null
+    }
 }
 
 class OnThisDayBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.MainFragmentAdapterProvider {
@@ -298,5 +303,11 @@ class OnThisDayBrowseFragment : RowsSupportFragment(), BrowseSupportFragment.Mai
                 )
             )
         )
+    }
+
+    companion object {
+        fun clearCache() {
+            OnThisDayCache.clear()
+        }
     }
 }

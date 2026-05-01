@@ -1,13 +1,16 @@
 package nl.giejay.android.tv.immich.home
 
 import android.content.SharedPreferences
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -24,6 +27,7 @@ import androidx.leanback.widget.PresenterSelector
 import androidx.leanback.widget.Row
 import androidx.leanback.widget.RowHeaderPresenter
 import androidx.leanback.widget.SectionRow
+import nl.giejay.android.tv.immich.MainActivity
 import nl.giejay.android.tv.immich.R
 import nl.giejay.android.tv.immich.album.AlbumFragment
 import nl.giejay.android.tv.immich.assets.AllAssetFragment
@@ -48,6 +52,10 @@ class HomeFragment : BrowseSupportFragment() {
     private var showingFolders = false
     private var dynamicTitle: String? = null
     private var hidingTitleForHeaderTransition = false
+    private var sidebarControlsView: View? = null
+    private var exitAppButton: View? = null
+    private var refreshAppButton: View? = null
+    private var headerRailConfigured = false
     private val showFoldersPreferenceListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == SHOW_FOLDERS_IN_MAIN_COLUMN.key() && ::mRowsAdapter.isInitialized) {
@@ -69,6 +77,9 @@ class HomeFragment : BrowseSupportFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        attachHomeSidebarControls()
+        setupHeaderFocusBridge()
+
         headersSupportFragment.setOnHeaderViewSelectedListener { _, row ->
             val headerTitle = row?.headerItem?.name ?: "-"
             selectedPosition = row?.let { mRowsAdapter.indexOf(it) } ?: 0
@@ -109,6 +120,12 @@ class HomeFragment : BrowseSupportFragment() {
         view.postDelayed({ refreshTitleFromSelectedRow() }, INITIAL_TITLE_REFRESH_DELAY_MS)
     }
 
+    override fun onDestroyView() {
+        immichRowPresenter.onNavigateToSidebarControls = null
+        detachHomeSidebarControls()
+        super.onDestroyView()
+    }
+
     override fun startHeadersTransition(withHeaders: Boolean) {
         if (!isInHeadersTransition && isShowingHeaders != withHeaders) {
             hideTitleForHeaderTransition()
@@ -131,6 +148,148 @@ class HomeFragment : BrowseSupportFragment() {
             .addClassPresenter(Row::class.java, immichRowPresenter)
 
         setHeaderPresenterSelector(sHeaderPresenter)
+    }
+
+    private fun attachHomeSidebarControls() {
+        val headersRoot = view?.findViewById<RelativeLayout>(androidx.leanback.R.id.browse_headers_root)
+        if (headersRoot == null) {
+            view?.postDelayed({ attachHomeSidebarControls() }, HEADER_FOCUS_BRIDGE_RETRY_DELAY_MS)
+            return
+        }
+
+        if (sidebarControlsView?.parent != null) {
+            return
+        }
+
+        val controlsView = layoutInflater.inflate(R.layout.home_sidebar_controls, headersRoot, false)
+        val controlsLayoutParams = RelativeLayout.LayoutParams(
+            resources.getDimensionPixelSize(R.dimen.lb_browse_headers_width),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topMargin = resources.getDimensionPixelSize(R.dimen.home_sidebar_controls_margin_top)
+        }
+
+        headersRoot.addView(controlsView, controlsLayoutParams)
+        sidebarControlsView = controlsView
+        exitAppButton = controlsView.findViewById(R.id.home_exit_button)
+        refreshAppButton = controlsView.findViewById(R.id.home_refresh_button)
+
+        exitAppButton?.setOnClickListener { exitApp() }
+        refreshAppButton?.setOnClickListener { refreshApp() }
+        setupSidebarButtonFocus()
+        controlsView.visibility = View.VISIBLE
+        controlsView.alpha = 1f
+    }
+
+    private fun detachHomeSidebarControls() {
+        val controlsView = sidebarControlsView ?: return
+        (controlsView.parent as? ViewGroup)?.removeView(controlsView)
+        sidebarControlsView = null
+        exitAppButton = null
+        refreshAppButton = null
+    }
+
+    private fun setupSidebarButtonFocus() {
+        exitAppButton?.setOnKeyListener { _, keyCode, event ->
+            if (event?.action != KeyEvent.ACTION_DOWN) {
+                return@setOnKeyListener false
+            }
+
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    refreshAppButton?.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    requestHeadersFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        refreshAppButton?.setOnKeyListener { _, keyCode, event ->
+            if (event?.action != KeyEvent.ACTION_DOWN) {
+                return@setOnKeyListener false
+            }
+
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    exitAppButton?.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    requestHeadersFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun setupHeaderFocusBridge() {
+        val headerGridView = headersSupportFragment.verticalGridView
+        if (headerGridView == null) {
+            view?.postDelayed({ setupHeaderFocusBridge() }, HEADER_FOCUS_BRIDGE_RETRY_DELAY_MS)
+            return
+        }
+
+        if (!headerRailConfigured) {
+            headerGridView.clipToPadding = true
+            headerGridView.setPadding(
+                headerGridView.paddingLeft,
+                resources.getDimensionPixelSize(R.dimen.home_sidebar_header_grid_padding_top),
+                headerGridView.paddingRight,
+                headerGridView.paddingBottom
+            )
+            headerRailConfigured = true
+        }
+
+        immichRowPresenter.onNavigateToSidebarControls = { row, keyCode ->
+            if (
+                row.headerItem?.name == getSelectedHeaderName() &&
+                (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || selectedPosition == 0) &&
+                isShowingHeaders &&
+                !isInHeadersTransition &&
+                sidebarControlsView?.visibility == View.VISIBLE
+            ) {
+                exitAppButton?.requestFocus()
+                true
+            } else {
+                false
+            }
+        }
+
+        headerGridView.setOnKeyListener { _, keyCode, event ->
+            if (
+                event?.action == KeyEvent.ACTION_DOWN &&
+                keyCode == KeyEvent.KEYCODE_DPAD_UP &&
+                selectedPosition == 0 &&
+                isShowingHeaders &&
+                !isInHeadersTransition &&
+                sidebarControlsView?.visibility == View.VISIBLE
+            ) {
+                exitAppButton?.requestFocus()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun exitApp() {
+        requireActivity().finishAffinity()
+    }
+
+    private fun refreshApp() {
+        VideosBrowseFragment.clearCache()
+        OnThisDayBrowseFragment.clearCache()
+
+        val refreshIntent = Intent(requireContext(), MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(refreshIntent)
+        requireActivity().finish()
     }
 
     private fun loadData() {
@@ -290,7 +449,7 @@ class HomeFragment : BrowseSupportFragment() {
 
     private fun requestHeadersFocus() {
         headersSupportFragment.setSelectedPosition(selectedPosition, false)
-        headersSupportFragment.verticalGridView.requestFocus()
+        headersSupportFragment.verticalGridView?.requestFocus()
     }
 
     private fun getSelectedHeaderName(): String? {
@@ -342,6 +501,7 @@ class HomeFragment : BrowseSupportFragment() {
         private const val VIDEOS_DISPLAY_TITLE = "Video"
         private const val INITIAL_TITLE_REFRESH_DELAY_MS = 250L
         private const val HEADERS_FOCUS_RETRY_DELAY_MS = 150L
+        private const val HEADER_FOCUS_BRIDGE_RETRY_DELAY_MS = 50L
 
         private val HEADERS: List<Header> = listOf(
             Header(VIDEOS_HEADER_NAME) { VideosBrowseFragment() },

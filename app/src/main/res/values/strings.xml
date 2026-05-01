@@ -16,6 +16,9 @@
 
 <resources>
     <string name="app_name">Immich TV</string>
+    <string name="home_sidebar_logo_content_description">Immich</string>
+    <string name="home_sidebar_exit_content_description">Exit Immich TV</string>
+    <string name="home_sidebar_refresh_content_description">Refresh Immich TV</string>
 
     <!-- Strings for the "No Firebase" screen -->
     <string name="no_firebase_title">Firebase not configured</string>
